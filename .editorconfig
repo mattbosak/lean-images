@@ -1,0 +1,28 @@
+# PSR-12 in structure - brace on its own line, no spaces inside parentheses,
+# namespaced, typed - with three deliberate WordPress carve-outs: tab
+# indentation, snake_case method names, and the ABSPATH guard. Only the first
+# is an EditorConfig concern, hence indent_style = tab despite PSR-12 calling
+# for spaces.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = tab
+indent_size = 4
+
+[*.php]
+# DEVSENSE PHP Tools (VS Code / Visual Studio) only - other editors ignore
+# unknown keys. Sets the default severity for PHP diagnostics that have no
+# per-code override.
+php_diagnostic = warning
+
+[*.md]
+# Trailing double-space is a hard line break in Markdown.
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json}]
+indent_style = space
+indent_size = 2

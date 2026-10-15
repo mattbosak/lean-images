@@ -1,0 +1,66 @@
+# Release artifacts produced by .github/workflows/release.yml, or by running
+# its steps locally to debug a packaging problem.
+/build/
+/lean-images.zip
+/update.json
+
+# ---------------------------------------------------------------------------
+# Editor and IDE
+# ---------------------------------------------------------------------------
+# .vscode/settings.json is deliberately tracked - it is shared project
+# configuration, not personal state. Everything else in there is per-machine.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# Dependencies and tooling caches
+#
+# Nothing here is committed today - the plugin has no Composer or npm
+# dependency at runtime. These exist so that adding phpcs or phpstan later
+# does not accidentally commit a few thousand files.
+# ---------------------------------------------------------------------------
+/vendor/
+node_modules/
+package-lock.json
+composer.lock
+
+.phpcs-cache
+.phpcs.xml.dist.cache
+.phpunit.result.cache
+.php-cs-fixer.cache
+.phpstan.cache/
+phpcs.phar
+php-cs-fixer.phar
+
+# ---------------------------------------------------------------------------
+# Local environment and logs
+# ---------------------------------------------------------------------------
+# Machine-specific maintainer notes (test sites, paths, real hosts).
+CLAUDE.local.md
+.env
+.env.local
+*.log
+debug.log
+error_log

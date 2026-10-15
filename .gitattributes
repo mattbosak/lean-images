@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Images and colour profiles: test fixtures, self-test samples, screenshots.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.avif  binary
+*.avifs binary
+*.heic  binary
+*.gif   binary
+*.icc   binary

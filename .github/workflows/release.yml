@@ -1,0 +1,259 @@
+# Manually-triggered: type a version number, this bumps the header, packages a
+# release zip plus the update manifest, commits, and publishes a GitHub Release.
+#
+# FOLDER NAMING is load-bearing, not cosmetic. WordPress tracks an installed
+# plugin by its folder name + main file path. GitHub's own auto-generated
+# "Source code" zip wraps contents in "{repo}-{tag}", which would make every
+# release look like a different plugin instead of an update to the same one -
+# that's why the zip step below builds into a directory literally named
+# "lean-images/" rather than relying on the runner's checkout path.
+#
+# ORDERING is also load-bearing. Everything that can fail - validation, lint,
+# zip build, zip verification, manifest build - runs BEFORE anything is pushed.
+# A failure then leaves the repository completely untouched and the workflow
+# re-runnable. `gh release create` creates the tag itself, so there is no
+# separate tag step and no window in which a tag exists without a release.
+#
+# UPDATE MANIFEST: every release carries update.json next to the zip. Installed
+# copies read it from .../releases/latest/download/update.json - a plain
+# download URL, not the REST API, so many sites behind one server IP can't run
+# into GitHub's API rate limit. "latest" never points at a draft or
+# pre-release, so publishing one of those offers no update. The asset names
+# "lean-images.zip" and "update.json" are part of that contract: renaming either
+# breaks updates for every installed copy.
+#
+# The version input reaches shell steps only through the VERSION env var,
+# never via ${{ }} interpolation inside `run:` blocks - inline interpolation
+# of workflow inputs is GitHub's canonical script-injection pattern. Anyone
+# who can dispatch this workflow has write access anyway, but the safe form
+# costs nothing.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g. 1.0.1) - no leading v, that's added automatically for the tag"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Two dispatches racing would interleave a bump, a push and a tag. Never
+# cancel a run mid-flight: it could stop between the push and the release.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ inputs.version }}
+
+jobs:
+  release:
+    # Releases come from main only - a dispatch on any other branch is skipped.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version input
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must be plain x.y.z semver (no leading v), got: $VERSION"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Refuse to overwrite an existing tag
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+            echo "::error::Tag v$VERSION already exists. Bump the version or delete the tag."
+            exit 1
+          fi
+
+      # The changelog is the one release input the workflow can't generate -
+      # fail fast (before any commit or tag exists) if it wasn't written, so
+      # a forgotten edit can't ship a "View Details" modal or an update notice
+      # with no entry.
+      - name: Require a changelog entry for this version
+        run: |
+          if ! jq -e --arg ver "$VERSION" '.changelog[$ver]' plugin-info.json > /dev/null; then
+            echo "::error::plugin-info.json has no changelog entry for $VERSION - add one, commit, and re-run."
+            exit 1
+          fi
+
+      # Lints with the runner's PHP, which is newer than the plugin's 8.1
+      # minimum - this catches syntax errors, not use of newer-than-8.1 features.
+      - name: Lint PHP
+        run: |
+          find . -name '*.php' -not -path './build/*' -print0 \
+            | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Bump version header and last_updated
+        run: |
+          sed -i "s/^ \* Version: .*/ * Version:           $VERSION/" lean-images.php
+          # Assert, don't just print: if the header format ever drifts, sed
+          # no-ops silently and the release ships the previous version number
+          # under a new tag.
+          if ! grep -q "^ \* Version: *$VERSION\$" lean-images.php; then
+            echo "::error::Version header did not update - check the sed pattern against the file header."
+            exit 1
+          fi
+          grep "^ \* Version:" lean-images.php
+          jq --arg d "$(date -u '+%Y-%m-%d 00:00:00')" '.last_updated = $d' plugin-info.json > plugin-info.json.tmp
+          mv plugin-info.json.tmp plugin-info.json
+
+      # uninstall.php and license.txt are NOT optional extras. WordPress looks
+      # for uninstall.php at the plugin root and silently skips cleanup if it
+      # is missing; GPLv2 requires the licence text to accompany the work, and
+      # the plugin header points at it. assets/ holds files the plugin reads
+      # at runtime (self-test samples, the sRGB colour profile) once they exist.
+      - name: Build pruned release zip
+        run: |
+          mkdir -p build/lean-images
+          cp lean-images.php  build/lean-images/
+          cp uninstall.php    build/lean-images/
+          cp plugin-info.json build/lean-images/
+          cp license.txt      build/lean-images/
+          cp README.md        build/lean-images/
+          cp -r src           build/lean-images/
+          if [ -d assets ]; then cp -r assets build/lean-images/; fi
+          # Screenshots feed the "View details" modal's Screenshots tab. Without
+          # them the tab renders nothing at all - format_screenshots() skips any
+          # caption whose file is missing, so a packaging slip fails silently.
+          if [ -d screenshots ]; then cp -r screenshots build/lean-images/; fi
+          cd build
+          zip -rq ../lean-images.zip lean-images/
+
+      # A packaging mistake is invisible at runtime - the plugin just quietly
+      # loses a feature. Assert the contract instead of trusting the cp list.
+      # Extend `required` as classes are added.
+      - name: Verify zip contents
+        run: |
+          unzip -l lean-images.zip
+          required="
+          lean-images/lean-images.php
+          lean-images/uninstall.php
+          lean-images/plugin-info.json
+          lean-images/license.txt
+          lean-images/src/autoload.php
+          lean-images/src/Plugin.php
+          lean-images/src/Config.php
+          lean-images/src/Environment.php
+          lean-images/src/UpdateInfo.php
+          lean-images/src/Animation.php
+          lean-images/src/UploadCap.php
+          lean-images/src/Editors.php
+          lean-images/src/Editor/ImagickEditor.php
+          lean-images/src/Encoder.php
+          lean-images/src/Attachments.php
+          lean-images/src/Cleanup.php
+          lean-images/src/Htaccess.php
+          lean-images/src/SelfTest.php
+          lean-images/src/Library.php
+          lean-images/src/Converter.php
+          lean-images/src/Queue.php
+          lean-images/src/Admin/Api.php
+          lean-images/src/Admin/SettingsPage.php
+          lean-images/src/Admin/MediaColumn.php
+          lean-images/src/Admin/Notices.php
+          lean-images/src/MetadataStripper.php
+          lean-images/src/Originals.php
+          lean-images/src/Editor/SiblingWriter.php
+          lean-images/src/Editor/GdEditor.php
+          lean-images/src/Cli.php
+          lean-images/src/Updater.php
+          lean-images/assets/sRGB_v4_ICC_preference.icc
+          lean-images/assets/selftest/test.jpg
+          lean-images/assets/selftest/test.jpg.webp
+          lean-images/assets/selftest/test.jpg.avif
+          lean-images/assets/probe/still.avif
+          lean-images/assets/probe/still.heic
+          "
+          missing=0
+          for f in $required; do
+            if ! unzip -l lean-images.zip | grep -qF " $f"; then
+              echo "::error::Missing from release zip: $f"
+              missing=1
+            fi
+          done
+          # Every screenshot the modal references must actually be in the zip.
+          for shot in $(jq -r '.screenshots[]?.file // empty' plugin-info.json); do
+            if ! unzip -l lean-images.zip | grep -qF " lean-images/screenshots/$shot"; then
+              echo "::error::plugin-info.json references screenshot '$shot' but it is not in the zip"
+              missing=1
+            fi
+          done
+          # Nothing that only belongs in the repository may leak into a release.
+          for pattern in ".github/" ".vscode/" "CLAUDE.md" "TESTING.md" "tests/" ".git/"; do
+            if unzip -l lean-images.zip | grep -qF "$pattern"; then
+              echo "::error::Repo-only path leaked into the release zip: $pattern"
+              missing=1
+            fi
+          done
+          # The shipped header must match the tag being cut.
+          unzip -p lean-images.zip lean-images/lean-images.php \
+            | grep -q "^ \* Version: *$VERSION\$" \
+            || { echo "::error::Version header inside the zip is not $VERSION"; missing=1; }
+          exit $missing
+
+      # What installed copies read to decide whether to offer an update. Built
+      # from plugin-info.json after the last_updated bump, so both agree.
+      # GITHUB_REPOSITORY is a default runner variable (owner/repo).
+      - name: Build update manifest
+        run: |
+          jq -n \
+            --arg version "$VERSION" \
+            --arg package "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/lean-images.zip" \
+            --slurpfile info plugin-info.json \
+            '{
+              version: $version,
+              package: $package,
+              requires: $info[0].requirements.wordpress,
+              requires_php: $info[0].requirements.php,
+              tested: $info[0].requirements.tested,
+              last_updated: $info[0].last_updated,
+              changelog: $info[0].changelog
+            }' > update.json
+          cat update.json
+          if ! jq -e --arg ver "$VERSION" \
+            '.version == $ver and (.package | endswith("/lean-images.zip")) and (.requires | length > 0) and (.requires_php | length > 0) and .changelog[$ver]' \
+            update.json > /dev/null; then
+            echo "::error::update.json is incomplete - check plugin-info.json's requirements and changelog."
+            exit 1
+          fi
+
+      # Only now does anything leave the runner.
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lean-images.php plugin-info.json
+          # Distinguish "nothing changed" from "commit failed" - an `|| echo`
+          # would swallow genuine failures and tag an unbumped tree.
+          if git diff --cached --quiet; then
+            echo "Nothing to commit - version already current."
+          else
+            git commit -m "chore: bump version to $VERSION"
+          fi
+          git push
+
+      # Creates the tag at the pushed commit as part of publishing, so there
+      # is no window in which a tag exists without a release.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGELOG=$(jq -r --arg ver "$VERSION" \
+            '.changelog[$ver] // [] | map("- " + .) | join("\n")' plugin-info.json)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="See plugin-info.json for the full changelog."
+          fi
+          gh release create "v$VERSION" lean-images.zip update.json \
+            --target "$(git rev-parse HEAD)" \
+            --title "v$VERSION" \
+            --notes "$CHANGELOG"

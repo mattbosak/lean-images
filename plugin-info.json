@@ -1,0 +1,56 @@
+{
+  "name": "Lean Images",
+  "description": "Serves AVIF and WebP versions of your images to every browser that supports them, made on your own server. Your JPEG and PNG files stay exactly where they are, so nothing changes for anyone else - and switching the plugin off puts everything back instantly.",
+  "last_updated": "2026-10-14 00:00:00",
+  "features": [
+    "<strong>Made on your own server:</strong> AVIF and WebP files are created by ImageMagick (or GD) as you upload. No external service, no API key, no monthly quota.",
+    "<strong>Sharp at every size:</strong> each size is made from your original upload - resized once, compressed once.",
+    "<strong>No changes to your pages:</strong> the server picks the best format for each browser under the original image address, so themes, page builders and page caches keep working.",
+    "<strong>Removes location data:</strong> GPS coordinates and camera details are taken out of your original uploads and every image file WordPress makes, without recompressing them.",
+    "<strong>Safe to switch off:</strong> deactivate it and the site serves its original JPEG and PNG files again, straight away.",
+    "<strong>Checks your server for you:</strong> a built-in test shows what the host can do and spells out the fix when something is missing."
+  ],
+  "installation": [
+    "Upload the plugin to /wp-content/plugins/ and activate it through the Plugins screen.",
+    "Open <strong>Media → Lean Images</strong> and check the Status panel. If the server needs a change, the fix is shown right there.",
+    "Optional: set <strong>Settings → Media → Large size</strong> to the largest size your site actually displays. Bigger uploads are scaled down to it, and the original is kept.",
+    "Convert the images you already have with the button in the Library panel."
+  ],
+  "faq": [
+    {
+      "question": "Does it change my image addresses or my page HTML?",
+      "answer": "No. Pages keep linking to the same <code>.jpg</code> and <code>.png</code> files. The server checks which formats the visitor's browser accepts and sends the AVIF or WebP version under that same address."
+    },
+    {
+      "question": "What happens if I deactivate or delete it?",
+      "answer": "Deactivating removes its server rules, so every visitor gets your original JPEG and PNG files again immediately. Deleting the plugin also removes the AVIF and WebP files it made - on a large site, use <strong>Remove generated files</strong> on the settings screen first, which works in batches."
+    },
+    {
+      "question": "My host runs nginx. Will it work?",
+      "answer": "Images are still converted, but nginx doesn't read <code>.htaccess</code> files, so they aren't sent to visitors until a few lines are added to the server configuration. The Status panel shows those lines, ready to copy, and the test confirms when they work."
+    },
+    {
+      "question": "I use Cloudflare. Anything to know?",
+      "answer": "Cloudflare's free plan can cache one format and send it to every browser. The Status panel detects Cloudflare and lets you turn AVIF off, which is the safe choice there, or keep it if you have Cloudflare's \"Vary for images\" turned on."
+    },
+    {
+      "question": "Are animated GIF, WebP or AVIF images converted?",
+      "answer": "No. Animations are left exactly as uploaded, and no resized copies are made of them."
+    },
+    {
+      "question": "What happens to the original photo I upload?",
+      "answer": "It's kept, but never shown on your pages. Location and camera details are removed from it without recompressing the image, and iPhone HEIC photos are replaced with a full-size JPEG."
+    }
+  ],
+  "screenshots": [],
+  "changelog": {
+    "1.0.0": [
+      "Initial release."
+    ]
+  },
+  "requirements": {
+    "wordpress": "6.5",
+    "php": "8.1",
+    "tested": "7.1.3"
+  }
+}
