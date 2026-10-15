@@ -23,13 +23,24 @@ final class UpdateInfo
 	}
 
 	/**
+	 * WordPress adds its own "View details" link once it has update data for the
+	 * plugin - Updater gives it a slug, so from the first release on. Before
+	 * that, or when the update check fails, this adds one. Only for people who
+	 * can open it: the modal is part of plugin-install.php.
+	 *
 	 * @param string[] $plugin_meta
 	 * @return string[]
 	 */
 	public function add_plugin_row_meta(array $plugin_meta, string $plugin_file): array
 	{
-		if (LEAN_IMAGES_BASENAME !== $plugin_file) {
+		if (LEAN_IMAGES_BASENAME !== $plugin_file || !current_user_can('install_plugins')) {
 			return $plugin_meta;
+		}
+
+		foreach ($plugin_meta as $meta) {
+			if (false !== \strpos((string) $meta, 'open-plugin-details-modal')) {
+				return $plugin_meta; // WordPress's own link is already there.
+			}
 		}
 
 		$slug = \dirname(LEAN_IMAGES_BASENAME);

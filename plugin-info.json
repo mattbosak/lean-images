@@ -44,6 +44,9 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.1": [
+      "Fixed: the Plugins screen showed two \"View details\" links once WordPress had checked for updates."
+    ],
     "1.0.0": [
       "Initial release."
     ]
