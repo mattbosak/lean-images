@@ -791,6 +791,18 @@ the original's size and metadata status), "Convert now" for waiting images, "Try
 plus the error for failed ones, "Animated" with the frame count. The bulk actions menu
 gets "Convert with Lean Images".
 
+The same details appear in the **media modal's sidebar** (1.0.5) - grid view, the
+editor's media picker, the Edit Media screen - as an `attachment_fields_to_edit` row
+(`input: html`), rendered by the same `MediaColumn::render()` with `$modal` true: the
+per-size table open, dimensions under each size's name (the sidebar is ~270 px), and
+"Convert now" / "Try again" in a new tab that lands on the list view
+(`_wp_http_referer`), since the modal may sit over an unsaved post. Styles load on
+`wp_enqueue_media`, so wherever the modal can open. WordPress's sidebar CSS leaks into
+anything inside it - `.compat-item label span` right-aligns labels, `.compat-item tr`
+makes every table row a block, `.compat-item table` fixes the layout - so the row resets
+those for itself. Checked by rendering the sidebar markup (`get_compat_media_markup()`)
+with WordPress's own media CSS for converted, failed and non-convertible images.
+
 Decided: original-file handling (lossless metadata removal, HEIC replacement) is fixed
 behaviour, not a setting.
 

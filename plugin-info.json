@@ -44,6 +44,9 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.5": [
+      "Added: the media window's details sidebar (Media Library grid view, the editor's image picker, Edit Media) shows what Lean Images made of the image - savings per format and every size's JPEG/PNG, WebP and AVIF file sizes - with Convert now / Try again for administrators."
+    ],
     "1.0.4": [
       "Fixed: on servers whose Imagick extension reports its version as \"@PACKAGE_VERSION@\" (builds compiled from source, seen with PHP 8.5), WordPress refused ImageMagick, so images were resized and converted with GD and the server test wrongly blamed another plugin. Lean Images now uses ImageMagick there. Run \"Convert everything again\" afterwards for the sharper files.",
       "Improved: when WordPress itself turns ImageMagick down, the server test says so as a warning instead of blocking conversion."

@@ -194,6 +194,11 @@ cap, a sideways phone JPEG (orientation 6, 4032 × 3024) and a PNG, then reactiv
       where chosen, Details with the per-size table (smallest in green) and the
       original's size; "Not converted yet · Convert now" for old images;
       "Animated" with a frame count for new animated uploads.
+- [ ] **Media modal**: in the grid view, the editor's image picker and Edit Media, the
+      details sidebar shows a "Lean Images" section - savings per format, the per-size
+      table (full width, dimensions under each size) - matching the list column; for a
+      waiting or failed image as an administrator, "Convert now" / "Try again" opens a new
+      tab and lands on the list view with the result; the post being edited stays open.
 - [ ] **Convert now** on one image: notice "Image converted.", column updated. Logged in
       as an Author or Editor: no "Convert now" / "Try again" links and no bulk action;
       the admin-post URL itself answers 403.

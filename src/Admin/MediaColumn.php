@@ -14,11 +14,13 @@ if (!\defined('ABSPATH')) {
 }
 
 /**
- * The "Lean Images" column in the Media Library's list view, its "Convert now"
- * and "Try again" links, and the "Convert with Lean Images" bulk action.
+ * The "Lean Images" column in the Media Library's list view - and the same
+ * details in the media modal's sidebar (grid view, the editor's media picker,
+ * Edit Media) - with "Convert now" and "Try again", and the "Convert with Lean
+ * Images" bulk action.
  *
- * Numbers are read from disk when the row is shown, so they always describe
- * the files that are actually there.
+ * Numbers are read from disk when shown, so they always describe the files
+ * that are actually there.
  */
 final class MediaColumn
 {
@@ -34,6 +36,36 @@ final class MediaColumn
 		add_filter('handle_bulk_actions-upload', [$this, 'handle_bulk_action'], 10, 3);
 		add_action('admin_post_lean_images_convert', [$this, 'handle_convert']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue']);
+		add_filter('attachment_fields_to_edit', [$this, 'add_modal_field'], 10, 2);
+		// Wherever the media modal can open, not just the Media Library screen.
+		add_action('wp_enqueue_media', [$this, 'enqueue_styles']);
+	}
+
+	/**
+	 * A row in the attachment details: the media modal's sidebar and the Edit
+	 * Media screen. Rendered when the modal asks for the attachment (admin-ajax).
+	 *
+	 * @param array<string, array> $form_fields
+	 * @param \WP_Post             $post
+	 * @return array<string, array>
+	 */
+	public function add_modal_field($form_fields, $post): array
+	{
+		$form_fields = (array) $form_fields;
+		if (!$post instanceof \WP_Post || !wp_attachment_is_image($post->ID)) {
+			return $form_fields;
+		}
+
+		\ob_start();
+		$this->render($post->ID, true);
+
+		$form_fields[self::COLUMN] = [
+			'label' => __('Lean Images', 'lean-images'),
+			'input' => 'html',
+			'html' => (string) \ob_get_clean(),
+		];
+
+		return $form_fields;
 	}
 
 	/**
@@ -63,20 +95,29 @@ final class MediaColumn
 			return;
 		}
 
+		$this->render($attachment_id, false);
+	}
+
+	/**
+	 * @param bool $modal The media modal's narrow sidebar: details open, a
+	 *                    narrower table, action links in a new tab.
+	 */
+	private function render(int $attachment_id, bool $modal): void
+	{
 		$status = Library::status($attachment_id);
 		$convertible = \in_array(get_post_mime_type($attachment_id), Library::convertible_types(), true);
 
-		echo '<div class="li-col">';
+		echo '<div class="li-col' . ($modal ? ' li-col-modal' : '') . '">';
 
 		if ('done' === $status) {
-			$this->render_done($attachment_id);
+			$this->render_done($attachment_id, $modal);
 		} elseif ('waiting' === $status) {
 			echo '<span><span class="li-pill li-pill-info">' . esc_html__('Waiting', 'lean-images') . '</span></span>';
-			echo '<span class="li-meta">' . esc_html__('In the queue', 'lean-images') . $this->convert_link($attachment_id, __('Convert now', 'lean-images')) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
+			echo '<span class="li-meta">' . esc_html__('In the queue', 'lean-images') . $this->convert_link($attachment_id, __('Convert now', 'lean-images'), $modal) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 		} elseif ('failed' === $status) {
 			echo '<span><span class="li-pill li-pill-err">' . esc_html__('Failed', 'lean-images') . '</span></span>';
 			echo '<span class="li-error">' . esc_html(Library::error($attachment_id)) . '</span>';
-			$retry = $this->convert_link($attachment_id, __('Try again', 'lean-images'));
+			$retry = $this->convert_link($attachment_id, __('Try again', 'lean-images'), $modal);
 			if ('' !== $retry) {
 				echo '<span class="li-meta">' . \ltrim($retry, ' ·') . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 			}
@@ -89,7 +130,7 @@ final class MediaColumn
 				number_format_i18n((int) $frames)
 			)) . '</span>';
 		} elseif ($convertible) {
-			echo '<span class="li-meta">' . esc_html__('Not converted yet', 'lean-images') . $this->convert_link($attachment_id, __('Convert now', 'lean-images')) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
+			echo '<span class="li-meta">' . esc_html__('Not converted yet', 'lean-images') . $this->convert_link($attachment_id, __('Convert now', 'lean-images'), $modal) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 		} else {
 			echo '<span class="li-meta">' . esc_html__('Not converted: only JPEG and PNG images are.', 'lean-images') . '</span>';
 		}
@@ -161,9 +202,19 @@ final class MediaColumn
 		Notices::redirect($codes[$status] ?? 'convert-failed', 0, admin_url('upload.php?mode=list'));
 	}
 
+	/**
+	 * The Media Library and the Edit Media screen (post.php for an attachment).
+	 */
 	public function enqueue(string $hook_suffix): void
 	{
-		if ('upload.php' !== $hook_suffix) {
+		if ('upload.php' === $hook_suffix || ('post.php' === $hook_suffix && 'attachment' === get_post_type())) {
+			$this->enqueue_styles();
+		}
+	}
+
+	public function enqueue_styles(): void
+	{
+		if (wp_style_is('lean-images-media')) {
 			return;
 		}
 
@@ -176,7 +227,7 @@ final class MediaColumn
 	 * "N% smaller" per format, over the files that have that format - plus the
 	 * per-size table behind Details.
 	 */
-	private function render_done(int $attachment_id): void
+	private function render_done(int $attachment_id, bool $modal): void
 	{
 		$files = Library::files($attachment_id);
 		$rows = [];
@@ -217,18 +268,24 @@ final class MediaColumn
 			echo '<span class="li-muted">' . esc_html__('Uploaded as HEIC.', 'lean-images') . '</span>';
 		}
 
-		echo '<details class="li-details"><summary>' . esc_html(\sprintf(
+		echo '<details class="li-details"' . ($modal ? ' open' : '') . '><summary>' . esc_html(\sprintf(
 			/* translators: %s: number of image files. */
 			_n('%s file · Details', '%s files · Details', \count($rows), 'lean-images'),
 			number_format_i18n(\count($rows))
 		)) . '</summary>';
 
+		// In the modal's narrow sidebar the dimensions go under the size's name.
 		$source_label = 'image/png' === wp_get_image_mime((string) get_attached_file($attachment_id)) ? 'PNG' : 'JPEG';
-		echo '<table class="li-sizes"><thead><tr><th>' . esc_html__('Size', 'lean-images') . '</th><th>' . esc_html__('Dimensions', 'lean-images') . '</th><th>' . esc_html($source_label) . '</th><th>WebP</th><th>AVIF</th></tr></thead><tbody>';
+		echo '<table class="li-sizes"><thead><tr><th>' . esc_html__('Size', 'lean-images') . '</th>'
+			. ($modal ? '' : '<th>' . esc_html__('Dimensions', 'lean-images') . '</th>')
+			. '<th>' . esc_html($source_label) . '</th><th>WebP</th><th>AVIF</th></tr></thead><tbody>';
 
 		foreach ($rows as $row) {
 			$smallest = \min(\array_filter([$row['source'], $row['webp'], $row['avif']], static fn ($size) => null !== $size));
-			echo '<tr><td>' . esc_html($row['file']['label']) . '</td><td>' . esc_html($row['file']['width'] . ' × ' . $row['file']['height']) . '</td>';
+			$dimensions = $row['file']['width'] . ' × ' . $row['file']['height'];
+			echo $modal
+				? '<tr><td>' . esc_html($row['file']['label']) . '<span class="li-dims">' . esc_html($dimensions) . '</span></td>'
+				: '<tr><td>' . esc_html($row['file']['label']) . '</td><td>' . esc_html($dimensions) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
 			foreach (['source', 'webp', 'avif'] as $key) {
 				$size = $row[$key];
 				echo '<td' . (null !== $size && $size === $smallest ? ' class="li-best"' : '') . '>' . (null === $size ? '<span class="li-muted">—</span>' : esc_html(size_format($size, 1))) . '</td>';
@@ -256,8 +313,11 @@ final class MediaColumn
 	 * " · Convert now" - for administrators only, like the bulk action: it
 	 * converts in the request, and anyone who can upload could otherwise run it
 	 * in a loop.
+	 *
+	 * From the modal it opens in a new tab and lands on the Media Library list
+	 * with the result: the modal may sit over an unsaved post in the editor.
 	 */
-	private function convert_link(int $attachment_id, string $label): string
+	private function convert_link(int $attachment_id, string $label, bool $new_tab = false): string
 	{
 		if (!current_user_can('manage_options')) {
 			return '';
@@ -267,6 +327,13 @@ final class MediaColumn
 			admin_url('admin-post.php?action=lean_images_convert&attachment=' . $attachment_id),
 			'lean_images_convert_' . $attachment_id
 		);
+
+		if ($new_tab) {
+			// Notices::redirect() goes back to the referer; this one is the list.
+			$url = add_query_arg('_wp_http_referer', \rawurlencode(admin_url('upload.php?mode=list')), $url);
+
+			return ' · <a href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($label) . '</a>';
+		}
 
 		return ' · <a href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
 	}
@@ -293,6 +360,16 @@ final class MediaColumn
 .li-col .li-sizes thead th { background: #f6f7f7; border-top: 0; font-weight: 600; }
 .li-col .li-best { color: #007017; font-weight: 600; }
 .li-col p { margin: 2px 0 0; }
+.compat-item .compat-field-lean_images .label, .compat-item .compat-field-lean_images .field { float: none; width: auto; min-width: 0; margin: 0; text-align: left; }
+.compat-item .compat-field-lean_images label span { float: none; min-height: 0; padding-top: 0; text-align: left; font-weight: 600; color: #1d2327; }
+.compat-item .li-sizes { table-layout: auto; }
+.compat-item .li-sizes tr { display: table-row; padding: 0; }
+.li-col-modal { margin: 4px 0 8px; font-size: 12px; }
+.li-col-modal .li-details[open] { width: auto; max-width: none; }
+.li-col-modal .li-sizes { width: 100%; margin: 6px 0 4px; }
+.li-col-modal .li-sizes th, .li-col-modal .li-sizes td { padding: 3px 5px; }
+.li-col-modal .li-sizes th:nth-child(2), .li-col-modal .li-sizes td:nth-child(2) { text-align: right; }
+.li-col-modal .li-dims { display: block; color: #646970; font-size: 11px; }
 CSS;
 	}
 }
