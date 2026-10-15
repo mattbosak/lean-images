@@ -78,11 +78,19 @@ final class UploadCap
 	 */
 	public function threshold($threshold, $imagesize, $file, $attachment_id)
 	{
-		if (\is_string($file) && Animation::is_animated($file)) {
+		[$box_w, $box_h] = self::box();
+
+		// Asked without an image: WordPress's REST index does that, for the block
+		// editor's in-browser image processing (WordPress 7.1). One number has to
+		// stand for the box - its longer side.
+		if (!\is_string($file) || '' === $file) {
+			return $box_w > 0 || $box_h > 0 ? \max($box_w, $box_h) : $threshold;
+		}
+
+		if (Animation::is_animated($file)) {
 			return false; // Scaling would flatten the animation to its first frame.
 		}
 
-		[$box_w, $box_h] = self::box();
 		if ($box_w <= 0 && $box_h <= 0) {
 			return $threshold; // No Large size set at all - keep WordPress's default.
 		}

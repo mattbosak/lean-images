@@ -64,6 +64,10 @@ Large = 1500 × 1500:
 - [ ] **CMYK JPEG**: siblings look right in a browser (converted to sRGB), not inverted.
 - [ ] **PNG logo with transparency and a large flat-colour PNG**: siblings keep the
       transparency; text edges stay crisp.
+- [ ] **Block editor on WordPress 7.1+ over HTTPS or `localhost`** (in a real browser):
+      opening a post doesn't fail; an image uploaded into an Image block gets WebP and AVIF
+      for every size, not just the main file (Media Library list → Lean Images → Details);
+      Status → Engines shows "Block editor uploads: processed on the server".
 - [ ] **Siblings carry no metadata**: no EXIF/GPS/XMP/ICC in any `.webp`/`.avif`
       (e.g. `exiftool -a -G1 file.webp`).
 - [ ] **JPEG/PNG files WordPress made carry no EXIF/IPTC/XMP** (GPS included) - only a

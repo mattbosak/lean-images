@@ -44,6 +44,10 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.2": [
+      "Fixed: on WordPress 7.1, opening the block editor stopped with a fatal error.",
+      "Fixed: on WordPress 7.1, images uploaded in the block editor got WebP and AVIF only for the main file. WordPress's new in-browser image processing is now turned off while Lean Images is active, so every upload is processed on the server again."
+    ],
     "1.0.1": [
       "Fixed: the Plugins screen showed two \"View details\" links once WordPress had checked for updates."
     ],

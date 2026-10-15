@@ -84,6 +84,11 @@ It's kept, but never shown on your pages. Location and camera details are remove
 it without recompressing the image; the orientation is kept so WordPress can still turn
 it upright. iPhone HEIC photos are replaced with a full-size JPEG.
 
+**WordPress 7.1 processes images in the browser. Does that matter?**
+In the block editor, WordPress 7.1 can make an upload's resized copies in your browser.
+Those would skip Lean Images, so it turns that off while it's active: every upload is
+processed on your server, as in earlier WordPress versions.
+
 **My host has no ImageMagick. Does it still work?**
 Yes, with GD - most hosts have it. Resized images are slightly softer, colours aren't
 converted from Display P3, HEIC isn't supported, and AVIF is made in the background

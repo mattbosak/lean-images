@@ -40,6 +40,12 @@ final class Animation
 	 */
 	public static function frame_count(string $path): ?int
 	{
+		// PHP 8 throws on fopen('') rather than failing - and WordPress itself
+		// passes an empty file name to big_image_size_threshold (the REST index).
+		if ('' === $path || !\is_file($path)) {
+			return null;
+		}
+
 		$key = $path . '|' . (int) @\filemtime($path);
 		if (\array_key_exists($key, self::$cache)) {
 			return self::$cache[$key];

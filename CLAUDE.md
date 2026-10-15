@@ -203,6 +203,33 @@ content and page-builder data.
 - WP 6.7+: HEIC uploads are converted to JPEG through the output-format mechanism; the
   HEIC stays as `original_image`.
 
+## WordPress 7.1's in-browser image processing
+
+WordPress 7.1 makes a block-editor upload's sizes in the browser when the page runs in a
+secure context (`wp_is_client_side_media_processing_enabled()`: HTTPS, `localhost`,
+`*.localhost`): it uploads the original with `generate_sub_sizes=false` (and the big-image
+threshold switched off), resizes in the browser, sideloads each size through
+`/wp/v2/media/{id}/sideload` - stored with `wp_handle_sideload()`, no image editor - and
+finally fires `wp_generate_attachment_metadata` ('update'). So the plugin's editor never
+ran: the main file got its siblings (the main-file gap), every size got none, and the
+image was recorded "done". Delivery stayed safe (JPEG for those sizes) but most of the
+saving was lost. Media Library-screen uploads and WP-CLI never used it.
+
+Decided (1.0.2): `Editors` turns it off while the plugin is active
+(`wp_client_side_media_processing_enabled` → false at priority 99), so every upload goes
+through the server again, as before 7.1 - the tested path. The Status Engines row says so,
+or warns when something turns it back on above 99. The alternative - keep it and queue
+each finalized upload for conversion from the original - was set aside: browser-made
+JPEG sizes, siblings only seconds later, the cap reduced to one number.
+
+The same feature exposed a fatal (1.0.2): the REST index, which the block editor
+preloads, asks `big_image_size_threshold` with no image (`array(0, 0), '', 0`) to pass
+the browser one threshold; `Animation::frame_count('')` reached `fopen('')`, which PHP 8
+throws on - every post edit screen died. `frame_count()` now refuses an empty or missing
+path, and `UploadCap::threshold()` answers that call with the Large box's longer side.
+Missed in testing: uploads were tested through WP-CLI and the Media Library, and the
+block editor was never opened in a browser on 7.1 - found on a live site.
+
 ## Upload cap
 
 The cap is the site's own Settings → Media "Large" size (`large_size_w`,
@@ -864,12 +891,18 @@ OpenLiteSpeed images are converted but delivery pauses itself.
 - nginx detection through `SERVER_SOFTWARE` when a proxy hides nginx's `Server` header
   (the header path is verified; `SERVER_SOFTWARE` only counts when the test runs from a
   web request, not WP-CLI).
-- The first real release: update detection and an actual update from GitHub, on a site
-  whose plugin folder is not a link to the source. Deferred until a genuine second
-  release - no artificial 1.0.1.
 
 ## Settled during the build
 
+- **A real update from GitHub** (2026-10-15): a site running 0.1.0 was offered the 1.0.0
+  release on Dashboard → Updates and installed it through WordPress; the same site then
+  got 1.0.1. Within 12 hours of the last check the manifest is still cached: "Check
+  again" on Dashboard → Updates (or deleting the `lean_images_update` and
+  `update_plugins` site transients) gets the new release offered at once.
+- **Two "View details" links** once a release existed: WordPress adds its own as soon
+  as it has update data with a slug (from `Updater`), and `UpdateInfo` added a second.
+  It now adds its link only when WordPress hasn't, and only for users who can open the
+  modal (`install_plugins`). Fixed in 1.0.1.
 - `.htaccess` names only enabled formats, so turning a format off stops its existing
   files being served (the encoder stops making them, but doesn't delete what's there).
 - **AVIF on but impossible on the server** (found on a LiteSpeed Enterprise shared host

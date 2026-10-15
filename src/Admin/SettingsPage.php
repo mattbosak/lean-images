@@ -581,6 +581,17 @@ final class SettingsPage
 				: __('can\'t be opened here', 'lean-images')];
 		}
 
+		// WordPress 7.1+ can make a block-editor upload's sizes in the browser; the
+		// plugin turns that off (Editors), unless something turns it back on.
+		if (\function_exists('wp_is_client_side_media_processing_enabled')) {
+			if (wp_is_client_side_media_processing_enabled()) {
+				$state = 'info';
+				$lines[] = [__('Block editor uploads', 'lean-images'), __('sizes made in the browser (turned on by another plugin or code) - they get no WebP or AVIF until converted again', 'lean-images')];
+			} else {
+				$lines[] = [__('Block editor uploads', 'lean-images'), __('processed on the server - WordPress\'s in-browser processing is off while Lean Images is active', 'lean-images')];
+			}
+		}
+
 		return [$state, $label, $lines];
 	}
 
