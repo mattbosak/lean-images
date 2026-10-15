@@ -228,7 +228,10 @@ the browser one threshold; `Animation::frame_count('')` reached `fopen('')`, whi
 throws on - every post edit screen died. `frame_count()` now refuses an empty or missing
 path, and `UploadCap::threshold()` answers that call with the Large box's longer side.
 Missed in testing: uploads were tested through WP-CLI and the Media Library, and the
-block editor was never opened in a browser on 7.1 - found on a live site.
+block editor was never opened in a browser on 7.1 - found on a live site. Verified there
+on 1.0.2 (WordPress 7.1, HTTPS): the editor opens, and a photo uploaded with the block
+editor's upload button got WebP and AVIF for all four files, capped from 6000 × 4000 to
+1500 × 1000 - the same as a Media Library upload.
 
 ## Upload cap
 
