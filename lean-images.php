@@ -3,7 +3,7 @@
  * Plugin Name:       Lean Images
  * Plugin URI:        https://github.com/mattbosak/lean-images
  * Description:       Serves AVIF and WebP versions of your images to browsers that support them, made on your own server.
- * Version:           1.0.2
+ * Version:           1.0.3
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Matt Bosak
