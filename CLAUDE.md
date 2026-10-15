@@ -685,7 +685,9 @@ Dashboard, Plugins and Media screens.
   to a server that works. Status shows a "Paused" pill, the Delivery/Web server rows and
   the server-rules text say why. Verified on OLS end to end (detect, pause, restart → all
   JPEG, re-test → stays paused, back on Apache → lifted), and from a second site pointed
-  at OLS.
+  at OLS. Re-verified on 1.0.2 with the rules in the main `.htaccess` (OLS serving the
+  whole site): the fault is the same (14 of 15 rounds wrong for a non-matching client),
+  and the whole lifecycle behaves as above.
 - Failure paths verified by simulation: rewriting off → "no-rewrite"; the old snippet's
   `AVIF_GD_Selector_Editor` replacing the editors → "editor-overridden", naming the class;
   loopback blocked → "loopback" warning with the coloured-test-image check for a browser.
