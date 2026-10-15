@@ -25,10 +25,41 @@ final class ImagickEditor extends \WP_Image_Editor_Imagick implements SiblingWri
 	/**
 	 * Steps aside when the probe found that this ImageMagick can't make WebP
 	 * (a build without the delegate) - WordPress then picks the GD editor.
+	 *
+	 * Otherwise WordPress's own test decides, with one correction: an Imagick
+	 * extension compiled from source can report its version as
+	 * "@PACKAGE_VERSION@" (seen with PHP 8.5), which fails WordPress's version
+	 * check although everything works - WordPress then quietly uses GD, even
+	 * without this plugin (CLAUDE.md, "GD fallback").
 	 */
 	public static function test($args = [])
 	{
-		return parent::test($args) && 'gd' !== \LeanImages\Environment::engine();
+		if ('gd' === \LeanImages\Environment::engine()) {
+			return false;
+		}
+
+		return parent::test($args) || self::passes_without_version((string) \phpversion('imagick'));
+	}
+
+	/**
+	 * WordPress's checks (WP_Image_Editor_Imagick::test()) without the version
+	 * one - only for a version string that isn't a version number at all. A
+	 * real version below 2.2.0 still fails.
+	 */
+	public static function passes_without_version(string $version): bool
+	{
+		if (\preg_match('/^\d/', $version)) {
+			return false; // A real version number: WordPress's verdict stands.
+		}
+
+		if (!\extension_loaded('imagick') || !\class_exists('Imagick', false) || !\class_exists('ImagickPixel', false) || !\defined('imagick::COMPRESSION_JPEG')) {
+			return false;
+		}
+
+		// The same list WordPress requires.
+		$required = ['clear', 'destroy', 'valid', 'getimage', 'writeimage', 'getimageblob', 'getimagegeometry', 'getimageformat', 'setimageformat', 'setimagecompression', 'setimagecompressionquality', 'setimagepage', 'setoption', 'scaleimage', 'cropimage', 'rotateimage', 'flipimage', 'flopimage', 'readimage', 'readimageblob'];
+
+		return !\array_diff($required, \array_map('strtolower', \get_class_methods('Imagick')));
 	}
 
 	/**

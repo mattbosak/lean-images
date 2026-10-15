@@ -44,6 +44,10 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.4": [
+      "Fixed: on servers whose Imagick extension reports its version as \"@PACKAGE_VERSION@\" (builds compiled from source, seen with PHP 8.5), WordPress refused ImageMagick, so images were resized and converted with GD and the server test wrongly blamed another plugin. Lean Images now uses ImageMagick there. Run \"Convert everything again\" afterwards for the sharper files.",
+      "Improved: when WordPress itself turns ImageMagick down, the server test says so as a warning instead of blocking conversion."
+    ],
     "1.0.3": [
       "Improved: the nginx configuration the server test shows now says where it goes - above any other nginx rule for images, since nginx uses the first one that matches."
     ],

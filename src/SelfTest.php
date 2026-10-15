@@ -630,6 +630,18 @@ final class SelfTest
 			return [];
 		}
 
+		// The plugin's own GD editor although its Imagick one is still in the
+		// list: WordPress turned Imagick down - nobody replaced anything, and
+		// images are still converted.
+		$editors = (array) apply_filters('wp_image_editors', ['WP_Image_Editor_Imagick', 'WP_Image_Editor_GD']);
+		if (Editor\GdEditor::class === $chosen && Editor\ImagickEditor::class === $expected && \in_array(Editor\ImagickEditor::class, $editors, true)) {
+			return [self::problem('warning', 'imagick-refused', \sprintf(
+				/* translators: %s: the Imagick extension's version as it reports it. */
+				__('WordPress\'s check of the Imagick PHP extension fails on this server (it reports version %s), so images are resized and converted with GD instead of ImageMagick - slightly softer. Ask your host to update or reinstall the Imagick extension.', 'lean-images'),
+				(string) \phpversion('imagick')
+			))];
+		}
+
 		return [self::problem('error', 'editor-overridden', \sprintf(
 			/* translators: %s: PHP class name. */
 			__('Another plugin or code snippet replaces WordPress\'s image editors (%s), so new uploads aren\'t converted. Remove it, then run the test again.', 'lean-images'),

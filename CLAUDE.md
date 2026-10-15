@@ -555,6 +555,23 @@ softer resizing (core's `imagecopyresampled`), no colour management (P3 images d
 no HEIC. GD's pixel buffers count against PHP's `memory_limit` (Imagick's don't).
 Ubuntu 22.04's PHP 8.1 GD has no AVIF at all - such hosts get WebP only.
 
+**WordPress refusing a working Imagick** (found on a live PHP 8.5 host, fixed in 1.0.4):
+core's `WP_Image_Editor_Imagick::test()` requires `phpversion('imagick') >= 2.2.0`, and
+an Imagick extension compiled from source can report its version as
+`@PACKAGE_VERSION@` - which `version_compare()` puts below 2.2.0. WordPress then uses GD
+for everything, even without this plugin, although ImageMagick works (7.1.1 there, every
+required method present). The plugin's editor inherited the test, so its GD editor was
+chosen while the probe (which encodes for real) said Imagick - and the self-test called
+that "another plugin replaces the editors" and blocked the bulk buttons.
+`ImagickEditor::test()` now also passes when the version string isn't a version number
+at all and everything else core checks is there (`passes_without_version()`, core's
+method list copied); a real version below 2.2.0 still fails. And when the chosen editor
+is the plugin's own GD one while its Imagick editor is still in the list, the self-test
+says WordPress turned Imagick down (`imagick-refused`, a warning) instead. Found with a
+temporary must-use plugin that printed core's checks step by step, the filtered editor
+list with each filter's file and line, and the cached against a fresh editor choice -
+worth rebuilding for the next "wrong editor" report.
+
 Calibration (same 1500px pixels, PHP 8.3 on Windows): **GD WebP 75 is byte-identical to
 ImageMagick's** (same libwebp); **GD AVIF 50 matches ImageMagick AVIF 50** within 3% in
 size and similar SSIM, so the same settings apply. But GD's AVIF took 1.3-2.7 s per
