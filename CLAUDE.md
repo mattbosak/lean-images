@@ -395,7 +395,9 @@ Known limits:
   until it's added (files are still generated). **nginx in front of Apache, verified**
   (nginx 1.18 on :8084 in front of the Ubuntu Apache site, 2026-10-15): passing every
   request to Apache, the `.htaccess` rules work through it - the test passes, `Vary`
-  arrives, the `Server` header says nginx. Serving static files itself (Plesk-style,
+  arrives, the `Server` header says nginx. Also confirmed on a live host built that way
+  (the Status row then reads "nginx. Rules are in .htaccess…" - nginx is what answers,
+  Apache behind it applies the rules). Serving static files itself (Plesk-style,
   `try_files $uri @apache`), every browser gets the JPEG and the test reports "nginx" with
   the configuration; with that configuration added the test passes. It has to go
   **above** the site's own image location: nginx uses the first regex location that
@@ -570,7 +572,9 @@ is the plugin's own GD one while its Imagick editor is still in the list, the se
 says WordPress turned Imagick down (`imagick-refused`, a warning) instead. Found with a
 temporary must-use plugin that printed core's checks step by step, the filtered editor
 list with each filter's file and line, and the cached against a fresh editor choice -
-worth rebuilding for the next "wrong editor" report.
+worth rebuilding for the next "wrong editor" report. Verified on that host with 1.0.4:
+ImageMagick does the resizing, WebP and AVIF again (AVIF during upload, 0.18 s for the
+probe image), the self-test passes.
 
 Calibration (same 1500px pixels, PHP 8.3 on Windows): **GD WebP 75 is byte-identical to
 ImageMagick's** (same libwebp); **GD AVIF 50 matches ImageMagick AVIF 50** within 3% in
