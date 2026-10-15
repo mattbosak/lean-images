@@ -607,7 +607,7 @@ final class SettingsPage
 				<button type="button" class="button" data-li-copy="#li-nginx"><?php esc_html_e('Copy', 'lean-images'); ?></button>
 			</div>
 			<pre class="li-code" id="li-nginx"><?php echo esc_html(SelfTest::nginx_config()); ?></pre>
-			<p class="description"><?php esc_html_e('Reload nginx after adding it, then run the test again.', 'lean-images'); ?></p>
+			<p class="description"><?php esc_html_e('Put the location block above any other location that matches images - nginx uses the first one that matches. Reload nginx after adding it, then run the test again.', 'lean-images'); ?></p>
 			<?php
 		}
 

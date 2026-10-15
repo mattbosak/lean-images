@@ -44,6 +44,9 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.3": [
+      "Improved: the nginx configuration the server test shows now says where it goes - above any other nginx rule for images, since nginx uses the first one that matches."
+    ],
     "1.0.2": [
       "Fixed: on WordPress 7.1, opening the block editor stopped with a fatal error.",
       "Fixed: on WordPress 7.1, images uploaded in the block editor got WebP and AVIF only for the main file. WordPress's new in-browser image processing is now turned off while Lean Images is active, so every upload is processed on the server again."

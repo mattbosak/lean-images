@@ -160,6 +160,12 @@ old browser `image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5`.
         comes back as `image/avif`, WebP as `image/webp`, `Vary: Accept` on everything;
       - without the location's `types` block → warning that AVIF is served as
         `application/octet-stream`, with the configuration shown.
+- [ ] **nginx in front of Apache** (an nginx site proxying to the Apache test site; a
+      must-use plugin points `lean_images_selftest_url` at it):
+      - nginx passing every request to Apache → the test passes, AVIF/WebP/JPEG with `Vary`;
+      - nginx serving static files itself (`try_files $uri @apache`) → error "This server
+        runs nginx…" with the configuration; added above the static location → passes;
+        added below it → still the nginx error.
 - [ ] **Engines row** in Status names the engine for resizing and WebP, AVIF, AVIF
       uploads and HEIC uploads. With the cached probe faked (ImageMagick can't make or open
       AVIF; GD can) it shows GD for AVIF and AVIF uploads, and an AVIF upload is resized by

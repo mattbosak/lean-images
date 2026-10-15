@@ -392,7 +392,15 @@ Known limits:
 
 - nginx ignores `.htaccess`; so do setups where nginx serves static files in front of
   Apache. The self-test detects both and shows an nginx snippet; nothing is delivered
-  until it's added (files are still generated).
+  until it's added (files are still generated). **nginx in front of Apache, verified**
+  (nginx 1.18 on :8084 in front of the Ubuntu Apache site, 2026-10-15): passing every
+  request to Apache, the `.htaccess` rules work through it - the test passes, `Vary`
+  arrives, the `Server` header says nginx. Serving static files itself (Plesk-style,
+  `try_files $uri @apache`), every browser gets the JPEG and the test reports "nginx" with
+  the configuration; with that configuration added the test passes. It has to go
+  **above** the site's own image location: nginx uses the first regex location that
+  matches, so below a static-files one it never runs (verified - the test keeps
+  reporting "nginx"). The snippet's comment and the Status panel say so since 1.0.3.
 - **OpenLiteSpeed can't do this reliably** (1.9.3 on Ubuntu, Example vhost with
   `autoLoadHtaccess 1`). It applies the rules correctly to clients that match them, but
   when the **same address** is requested again, a client that matches neither rule

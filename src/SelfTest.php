@@ -216,8 +216,11 @@ final class SelfTest
 		// The types block: older nginx (1.18, Ubuntu 22.04) has no AVIF in its
 		// mime.types and sends it as application/octet-stream. Inside a location
 		// it replaces the whole list, so it names all four.
+		// Above other image locations: nginx uses the first regex location that
+		// matches, so below a "serve static files" one this never runs - seen with
+		// nginx serving static files in front of Apache.
 		$lines[] = '';
-		$lines[] = "# Inside the site's server { }";
+		$lines[] = "# Inside the site's server { }, above any other location that matches images";
 		$lines[] = "location ~* ^{$path}/.+\\.(?:jpe?g|png)$ {";
 		$lines[] = '    types {';
 		$lines[] = '        image/jpeg jpeg jpg;';
