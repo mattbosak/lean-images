@@ -44,6 +44,10 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.7": [
+      "Improved: images that aren't converted say why, by type - SVG is a vector image, WebP and AVIF uploads already are those formats, GIFs are left as they are - instead of one generic note.",
+      "Fixed: animated GIF and WebP files showed \"2 frames\" whatever their length; the Media Library now shows the real count. Animations uploaded before the plugin are shown as animated too."
+    ],
     "1.0.6": [
       "Fixed: an image whose original is now smaller than some of its sizes - typically an original replaced by a smaller file after upload - failed to convert with \"Could not calculate resized image dimensions\". Those sizes' WebP and AVIF are now made from the size's own file. Use \"Try again\" (or \"Try failed again\" on the settings page) for images that failed before."
     ],

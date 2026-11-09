@@ -801,6 +801,17 @@ the original's size and metadata status), "Convert now" for waiting images, "Try
 plus the error for failed ones, "Animated" with the frame count. The bulk actions menu
 gets "Convert with Lean Images".
 
+Only attachments WordPress counts as images (type `image/…` - SVG included, PDF not) get
+the column. One that isn't converted says why, by type (1.0.7,
+`MediaColumn::not_converted_note()`): SVG "Vector image", WebP/AVIF uploads "Already
+WebP/AVIF", GIF "left as it is", HEIC on WordPress 6.5-6.6 "only from 6.7", anything
+else "only JPEG and PNG". An animation shows as "Animated" whether or not it has a
+status (uploaded before the plugin), with the real frame count:
+`Animation::frame_count($path, true)` - without `$all` the GIF and WebP counters stop at
+2, which once showed "2 frames" for every animated GIF/WebP. Counting skips over the
+image data, so it stays cheap per row (matched ImageMagick's count: 5-frame GIF,
+20-frame WebP).
+
 The same details appear in the **media modal's sidebar** (1.0.5) - grid view, the
 editor's media picker, the Edit Media screen - as an `attachment_fields_to_edit` row
 (`input: html`), rendered by the same `MediaColumn::render()` with `$modal` true: the

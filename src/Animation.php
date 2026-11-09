@@ -35,10 +35,11 @@ final class Animation
 	/**
 	 * Number of frames, or null when the file isn't a GIF, PNG, WebP or
 	 * AVIF/HEIF (a JPEG, for instance - never animated). GIF and WebP counting
-	 * stops at 2, which is enough to answer "animated?" without walking a long
-	 * animation.
+	 * stops at 2 unless $all - enough to answer "animated?" during an upload;
+	 * the Media Library shows the real count, still without reading any image
+	 * data (it's skipped over).
 	 */
-	public static function frame_count(string $path): ?int
+	public static function frame_count(string $path, bool $all = false): ?int
 	{
 		// PHP 8 throws on fopen('') rather than failing - and WordPress itself
 		// passes an empty file name to big_image_size_threshold (the REST index).
@@ -46,7 +47,7 @@ final class Animation
 			return null;
 		}
 
-		$key = $path . '|' . (int) @\filemtime($path);
+		$key = $path . '|' . (int) @\filemtime($path) . '|' . (int) $all;
 		if (\array_key_exists($key, self::$cache)) {
 			return self::$cache[$key];
 		}
@@ -58,7 +59,7 @@ final class Animation
 
 		$count = null;
 		foreach (['gif_frames', 'png_frames', 'webp_frames', 'isobmff_frames'] as $method) {
-			$count = self::$method($handle);
+			$count = self::$method($handle, $all);
 			if (null !== $count) {
 				break;
 			}
@@ -74,7 +75,7 @@ final class Animation
 	 *
 	 * @param resource $f
 	 */
-	private static function gif_frames($f): ?int
+	private static function gif_frames($f, bool $all): ?int
 	{
 		\fseek($f, 0);
 		$header = (string) \fread($f, 13);
@@ -106,7 +107,7 @@ final class Animation
 			}
 
 			$frames++;
-			if ($frames > 1) {
+			if ($frames > 1 && !$all) {
 				return $frames;
 			}
 
@@ -143,7 +144,7 @@ final class Animation
 	 *
 	 * @param resource $f
 	 */
-	private static function png_frames($f): ?int
+	private static function png_frames($f, bool $all): ?int
 	{
 		\fseek($f, 0);
 		if ("\x89PNG\r\n\x1a\n" !== \fread($f, 8)) {
@@ -173,7 +174,7 @@ final class Animation
 	/**
 	 * @param resource $f
 	 */
-	private static function webp_frames($f): ?int
+	private static function webp_frames($f, bool $all): ?int
 	{
 		\fseek($f, 0);
 		$header = (string) \fread($f, 12);
@@ -200,7 +201,7 @@ final class Animation
 				return 1; // Simple, still WebP.
 			}
 
-			if ('ANMF' === $type && ++$frames > 1) {
+			if ('ANMF' === $type && ++$frames > 1 && !$all) {
 				return $frames;
 			}
 
@@ -218,7 +219,7 @@ final class Animation
 	 *
 	 * @param resource $f
 	 */
-	private static function isobmff_frames($f): ?int
+	private static function isobmff_frames($f, bool $all): ?int
 	{
 		$size = (int) \fstat($f)['size'];
 		$top = self::find_boxes($f, 0, $size, ['ftyp', 'moov']);

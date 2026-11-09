@@ -121,8 +121,9 @@ final class MediaColumn
 			if ('' !== $retry) {
 				echo '<span class="li-meta">' . \ltrim($retry, ' ·') . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 			}
-		} elseif ('animated' === $status) {
-			$frames = Animation::frame_count((string) get_attached_file($attachment_id));
+		} elseif ('animated' === $status || (!$convertible && Animation::is_animated((string) get_attached_file($attachment_id)))) {
+			// Also animations uploaded before the plugin, which have no status.
+			$frames = Animation::frame_count((string) get_attached_file($attachment_id), true);
 			echo '<span><span class="li-pill li-pill-neutral">' . esc_html__('Animated', 'lean-images') . '</span></span>';
 			echo '<span class="li-meta">' . esc_html(\sprintf(
 				/* translators: %s: number of frames. */
@@ -132,10 +133,33 @@ final class MediaColumn
 		} elseif ($convertible) {
 			echo '<span class="li-meta">' . esc_html__('Not converted yet', 'lean-images') . $this->convert_link($attachment_id, __('Convert now', 'lean-images'), $modal) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 		} else {
-			echo '<span class="li-meta">' . esc_html__('Not converted: only JPEG and PNG images are.', 'lean-images') . '</span>';
+			echo '<span class="li-meta">' . esc_html(self::not_converted_note($attachment_id)) . '</span>';
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Why an image that isn't converted stays as it is - by type, since
+	 * "only JPEG and PNG" reads oddly under an SVG or a WebP.
+	 */
+	private static function not_converted_note(int $attachment_id): string
+	{
+		switch (get_post_mime_type($attachment_id)) {
+			case 'image/svg+xml':
+				return __('Vector image - nothing to convert.', 'lean-images');
+			case 'image/webp':
+				return __('Already WebP - nothing to convert.', 'lean-images');
+			case 'image/avif':
+				return __('Already AVIF - nothing to convert.', 'lean-images');
+			case 'image/gif':
+				return __('GIF - left as it is; only JPEG and PNG are converted.', 'lean-images');
+			case 'image/heic':
+			case 'image/heif':
+				return __('HEIC - WordPress turns these into JPEG only from version 6.7.', 'lean-images');
+			default:
+				return __('Not converted - only JPEG and PNG are.', 'lean-images');
+		}
 	}
 
 	/**

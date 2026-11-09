@@ -194,6 +194,10 @@ cap, a sideways phone JPEG (orientation 6, 4032 × 3024) and a PNG, then reactiv
       where chosen, Details with the per-size table (smallest in green) and the
       original's size; "Not converted yet · Convert now" for old images;
       "Animated" with a frame count for new animated uploads.
+- [ ] **Images that aren't converted**: an SVG (if the site allows them), a still WebP, a
+      still GIF each show their own note; an animated GIF and WebP uploaded before the
+      plugin show "Animated" with the same frame count ImageMagick reports
+      (`identify file.gif | wc -l`), not "2 frames".
 - [ ] **Media modal**: in the grid view, the editor's image picker and Edit Media, the
       details sidebar shows a "Lean Images" section - savings per format, the per-size
       table (full width, dimensions under each size) - matching the list column; for a
