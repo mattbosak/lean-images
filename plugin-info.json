@@ -44,6 +44,9 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.0.8": [
+      "Improved: PDFs, videos, audio and other files that aren't images now show a note in the Media Library's Lean Images column and the media window's details sidebar - saying there's nothing to convert - instead of an empty space."
+    ],
     "1.0.7": [
       "Improved: images that aren't converted say why, by type - SVG is a vector image, WebP and AVIF uploads already are those formats, GIFs are left as they are - instead of one generic note.",
       "Fixed: animated GIF and WebP files showed \"2 frames\" whatever their length; the Media Library now shows the real count. Animations uploaded before the plugin are shown as animated too."

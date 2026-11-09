@@ -801,11 +801,13 @@ the original's size and metadata status), "Convert now" for waiting images, "Try
 plus the error for failed ones, "Animated" with the frame count. The bulk actions menu
 gets "Convert with Lean Images".
 
-Only attachments WordPress counts as images (type `image/…` - SVG included, PDF not) get
-the column. One that isn't converted says why, by type (1.0.7,
-`MediaColumn::not_converted_note()`): SVG "Vector image", WebP/AVIF uploads "Already
-WebP/AVIF", GIF "left as it is", HEIC on WordPress 6.5-6.6 "only from 6.7", anything
-else "only JPEG and PNG". An animation shows as "Animated" whether or not it has a
+Every attachment gets the column and the media-window section, so no row is left blank
+(until 1.0.8 only `wp_attachment_is_image()` ones did, and PDFs looked forgotten). One
+that isn't converted says why, by type (`MediaColumn::not_converted_note()`): SVG
+"Vector image", WebP/AVIF uploads "Already WebP/AVIF", GIF "left as it is", HEIC on
+WordPress 6.5-6.6 "only from 6.7", any other image "only JPEG and PNG"; PDF "not an
+image", video and audio by name, anything else "Not an image". Non-images skip the
+animation check, so a large video isn't opened per row. An animation shows as "Animated" whether or not it has a
 status (uploaded before the plugin), with the real frame count:
 `Animation::frame_count($path, true)` - without `$all` the GIF and WebP counters stop at
 2, which once showed "2 frames" for every animated GIF/WebP. Counting skips over the

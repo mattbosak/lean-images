@@ -52,7 +52,7 @@ final class MediaColumn
 	public function add_modal_field($form_fields, $post): array
 	{
 		$form_fields = (array) $form_fields;
-		if (!$post instanceof \WP_Post || !wp_attachment_is_image($post->ID)) {
+		if (!$post instanceof \WP_Post) {
 			return $form_fields;
 		}
 
@@ -91,7 +91,7 @@ final class MediaColumn
 
 	public function render_column(string $column, int $attachment_id): void
 	{
-		if (self::COLUMN !== $column || !wp_attachment_is_image($attachment_id)) {
+		if (self::COLUMN !== $column) {
 			return;
 		}
 
@@ -121,7 +121,7 @@ final class MediaColumn
 			if ('' !== $retry) {
 				echo '<span class="li-meta">' . \ltrim($retry, ' ·') . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in convert_link().
 			}
-		} elseif ('animated' === $status || (!$convertible && Animation::is_animated((string) get_attached_file($attachment_id)))) {
+		} elseif ('animated' === $status || (!$convertible && wp_attachment_is_image($attachment_id) && Animation::is_animated((string) get_attached_file($attachment_id)))) {
 			// Also animations uploaded before the plugin, which have no status.
 			$frames = Animation::frame_count((string) get_attached_file($attachment_id), true);
 			echo '<span><span class="li-pill li-pill-neutral">' . esc_html__('Animated', 'lean-images') . '</span></span>';
@@ -140,12 +140,28 @@ final class MediaColumn
 	}
 
 	/**
-	 * Why an image that isn't converted stays as it is - by type, since
-	 * "only JPEG and PNG" reads oddly under an SVG or a WebP.
+	 * Why a file that isn't converted stays as it is - by type, since
+	 * "only JPEG and PNG" reads oddly under an SVG, a WebP or a PDF.
 	 */
 	private static function not_converted_note(int $attachment_id): string
 	{
-		switch (get_post_mime_type($attachment_id)) {
+		$mime = (string) get_post_mime_type($attachment_id);
+
+		if (!wp_attachment_is_image($attachment_id)) {
+			if ('application/pdf' === $mime) {
+				return __('PDF - not an image, nothing to convert.', 'lean-images');
+			}
+			if (\str_starts_with($mime, 'video/')) {
+				return __('Video - nothing to convert.', 'lean-images');
+			}
+			if (\str_starts_with($mime, 'audio/')) {
+				return __('Audio - nothing to convert.', 'lean-images');
+			}
+
+			return __('Not an image - nothing to convert.', 'lean-images');
+		}
+
+		switch ($mime) {
 			case 'image/svg+xml':
 				return __('Vector image - nothing to convert.', 'lean-images');
 			case 'image/webp':

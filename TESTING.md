@@ -198,6 +198,9 @@ cap, a sideways phone JPEG (orientation 6, 4032 × 3024) and a PNG, then reactiv
       still GIF each show their own note; an animated GIF and WebP uploaded before the
       plugin show "Animated" with the same frame count ImageMagick reports
       (`identify file.gif | wc -l`), not "2 frames".
+- [ ] **Files that aren't images**: a PDF, a video, an audio file and something else
+      (a ZIP or a Word document) each show a note in the column and in the media
+      window's details sidebar - none is blank, and none offers "Convert now".
 - [ ] **Media modal**: in the grid view, the editor's image picker and Edit Media, the
       details sidebar shows a "Lean Images" section - savings per format, the per-size
       table (full width, dimensions under each size) - matching the list column; for a
