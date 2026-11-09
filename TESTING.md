@@ -204,6 +204,10 @@ cap, a sideways phone JPEG (orientation 6, 4032 × 3024) and a PNG, then reactiv
       the admin-post URL itself answers 403.
 - [ ] **Upload named like a generated file** (`something.jpg.avif`): stored as
       `something-jpg.avif`.
+- [ ] **An original smaller than its sizes** (upload a 2400 × 1600 image with the cap off -
+      filter `lean_images_max_dimensions` returning `[0, 0]` - then shrink the original
+      to 1500 × 1000 and its recorded width/height with it): `wp lean-images convert <id>`
+      → done, the 1536 and 2048 sizes get WebP and AVIF at their own dimensions.
 - [ ] **A broken original** (overwrite the original file with text): three attempts, then
       "Failed" with a readable reason - no server path. "Try again" gives one more
       attempt and the error notice.

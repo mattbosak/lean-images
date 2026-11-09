@@ -676,6 +676,16 @@ later.
   must match the recorded dimensions exactly; a mismatch is redone as a centre crop.
   Verified: stock WordPress sizes (2560 `-scaled`, 2048, crops) all matched, and the
   bytes equal the upload path's for the same size.
+- **A source smaller than a size** (1.0.6): WordPress refuses to enlarge, so resizing
+  fails with "Could not calculate resized image dimensions" - seen on a live site, a
+  1500 px original with a 1536 × 1024 size left from when the original was bigger
+  (replaced by a smaller file after upload). The first such size used to abort the whole
+  image (later sizes got nothing; three tries, then "failed"). Now `Converter` makes that
+  size's siblings from the size's own file (`siblings_from_own_file()` →
+  `write_siblings_for_loaded_file()`): what's served under its URL, compressed once
+  more. Reproduced on Ubuntu (a 2400 × 1600 upload with every size, then the original
+  shrunk to 1500 × 1000): before, exactly that error; after, all seven files with WebP
+  and AVIF at their own dimensions; ordinary images unchanged.
 - Locally `spawn_cron()` starts the cron run within a second, so small jobs often finish
   before the page's first request comes back - the page handles a job that's already done.
 

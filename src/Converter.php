@@ -110,6 +110,10 @@ final class Converter
 
 				$result = $editor->write_siblings_for($file['path'], $file['width'], $file['height'], $file['crop']);
 				if (is_wp_error($result)) {
+					$result = self::siblings_from_own_file($file['path'], $result);
+				}
+
+				if (is_wp_error($result)) {
 					throw new \RuntimeException(\sprintf(
 						/* translators: 1: file name, 2: error message. */
 						__('Couldn\'t convert %1$s: %2$s', 'lean-images'),
@@ -157,6 +161,28 @@ final class Converter
 		}
 
 		Library::forget($attachment_id);
+	}
+
+	/**
+	 * When the source can't give a size - it's smaller than the size in some
+	 * direction, typically an original replaced by a smaller file after
+	 * WordPress made its sizes (seen on a live site: a 1500 px original with a
+	 * 1536 x 1024 size, and WordPress refuses to enlarge) - the siblings come
+	 * from the size's own file instead: exactly what's served under its URL,
+	 * compressed once more.
+	 *
+	 * @return array<string, array{status: string, bytes?: int, mode?: string}>|\WP_Error
+	 */
+	private static function siblings_from_own_file(string $path, \WP_Error $error)
+	{
+		$own = wp_get_image_editor($path);
+		if (!$own instanceof Editor\SiblingWriter) {
+			return $error;
+		}
+
+		$result = $own->write_siblings_for_loaded_file();
+
+		return $result ?: $error;
 	}
 
 	/**
